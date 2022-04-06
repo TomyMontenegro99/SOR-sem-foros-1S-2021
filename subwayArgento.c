@@ -11,7 +11,11 @@
 //creo estructura de semaforos 
 struct semaforos {
     sem_t sem_mezclar;
+	
 	//poner demas semaforos aqui
+	sem_t sem_salar;
+	sem_t sem_agregar;
+	sem_t sem_empanar;
 };
 
 //creo los pasos con los ingredientes
@@ -70,15 +74,60 @@ void* cortar(void *data) {
     pthread_exit(NULL);
 }
 
+void* mezclar (void *data){
+	char *accion = "mezclar";
+	struct parametro *mydata = data;
+	imprimirAccion(mydata,accion);
+	usleep( 2000 );
+	sem_post(&mydata->semaforos_param.sem_salar);
+
+	pthread_exit(NULL);
+}
+
+void* salar (void* data){
+	char *accion = "salar";
+	struct parametro *mydata = data;
+	imprimirAccion(mydata,accion);
+	usleep( 2000 );
+	sem_post(&mydata->semaforos_param.sem_agregar);
+
+	pthread_exit(NULL);
+}
+
+void* agregar (void* data){
+	char *accion = "agregar";
+	struct parametro *mydata = data;
+	imprimirAccion (mydata,accion);
+	usleep( 2000 );
+	sem_post(&mydata->semaforos_param.sem_empanar);
+}
+
+void* empanar (void* data){
+	char *accion = "empanar";
+	struct parametro *mydata = data;
+	imprimirAccion (mydata,accion);
+	usleep( 2000 );
+	pthread_exit(NULL);
+}
+
+
+
 void* ejecutarReceta(void *i) {
 	
 	//variables semaforos
 	sem_t sem_mezclar;
+	
 	//crear variables semaforos aqui
+	sem_t sem_salar;
+	sem_t sem_agregar;
+	sem_t sem_empanar;
 	
 	//variables hilos
 	pthread_t p1; 
 	//crear variables hilos aqui
+	pthread_t p2;
+	pthread_t p3;
+	pthread_t p4;
 	
 	//numero del equipo (casteo el puntero a un int)
 	int p = *((int *) i);
@@ -96,25 +145,57 @@ void* ejecutarReceta(void *i) {
 	//seteo semaforos
 	pthread_data->semaforos_param.sem_mezclar = sem_mezclar;
 	//setear demas semaforos al struct aqui
+	pthread_data->semaforos_param.sem_salar = sem_salar;
+	pthread_data->semaforos_param.sem_agregar = sem_agregar;
+	pthread_data->semaforos_param.sem_mezclar = sem_mezclar;
+	pthread_data->semaforos_param.sem_empanar = sem_empanar;
 	
 
 	//seteo las acciones y los ingredientes (Faltan acciones e ingredientes) ¿Se ve hardcodeado no? ¿Les parece bien?
      	strcpy(pthread_data->pasos_param[0].accion, "cortar");
 	    strcpy(pthread_data->pasos_param[0].ingredientes[0], "ajo");
-      strcpy(pthread_data->pasos_param[0].ingredientes[1], "perejil");
+        strcpy(pthread_data->pasos_param[0].ingredientes[1], "perejil");
 
 
 	    strcpy(pthread_data->pasos_param[1].accion, "mezclar");
 	    strcpy(pthread_data->pasos_param[1].ingredientes[0], "ajo");
-      strcpy(pthread_data->pasos_param[1].ingredientes[1], "perejil");
+        strcpy(pthread_data->pasos_param[1].ingredientes[1], "perejil");
  	    strcpy(pthread_data->pasos_param[1].ingredientes[2], "huevo");
 	    strcpy(pthread_data->pasos_param[1].ingredientes[3], "carne");
+
+		strcpy(pthread_data->pasos_param[2].accion, "salar");
+		strcpy(pthread_data->pasos_param[2].ingredientes[0], "sal"); 
+
+		strcpy(pthread_data->pasos_param[3].accion, "agregar");
+		strcpy(pthread_data->pasos_param[3].ingredientes[3], "carne");
+
+		strcpy(pthread_data->pasos_param[4].accion, "hornear");
+		strcpy(pthread_data->pasos_param[4].ingredientes[4], "pan");
+
+		strcpy(pthread_data->pasos_param[5].accion, "empanar");
+		strcpy(pthread_data->pasos_param[5].ingredientes[4], "pan");
+
+
+		
+
+
+
+
+		
+        
 	
 	
 	//inicializo los semaforos
 
 	sem_init(&(pthread_data->semaforos_param.sem_mezclar),0,0);
+	
+
+	
 	//inicializar demas semaforos aqui
+
+	sem_init(&(pthread_data->semaforos_param.sem_agregar),0,0);
+	sem_init(&(pthread_data->semaforos_param.sem_salar),0,0);
+	sem_init(&(pthread_data->semaforos_param.sem_empanar),0,0);
 
 
 	//creo los hilos a todos les paso el struct creado (el mismo a todos los hilos) ya que todos comparten los semaforos 
@@ -123,13 +204,24 @@ void* ejecutarReceta(void *i) {
                             NULL,                          //atributos del thread
                                 cortar,             //funcion a ejecutar
                                 pthread_data);                     //parametros de la funcion a ejecutar, pasado por referencia
+	
+	
 	//crear demas hilos aqui
+	int rc2;
+	int rc3;
+	int rc4;
+	rc2 = pthread_create(&p2,NULL,mezclar,pthread_data);
+	rc3 = pthread_create(&p3,NULL,agregar,pthread_data);
+	rc4 = pthread_create(&p4,NULL,empanar,pthread_data);
 	
 	
 	//join de todos los hilos
 	pthread_join (p1,NULL);
 	//crear join de demas hilos
 
+	pthread_join(p2,NULL);
+	pthread_join(p3,NULL);
+	pthread_join(p4,NULL);
 
 	//valido que el hilo se alla creado bien 
     if (rc){
@@ -141,6 +233,9 @@ void* ejecutarReceta(void *i) {
 	//destruccion de los semaforos 
 	sem_destroy(&sem_mezclar);
 	//destruir demas semaforos 
+	sem_destroy(&sem_salar);
+	sem_destroy(&sem_agregar);
+	sem_destroy(&sem_empanar);
 	
 	//salida del hilo
 	 pthread_exit(NULL);
@@ -155,7 +250,7 @@ int main ()
 	int *equipoNombre2 =malloc(sizeof(*equipoNombre2));
 	int *equipoNombre3 =malloc(sizeof(*equipoNombre3));
 	int *equipoNombre4 =malloc(sizeof(*equipoNombre4));
-//faltan equipos
+
   
 	*equipoNombre1 = 1;
 	*equipoNombre2 = 2;
@@ -167,7 +262,7 @@ int main ()
 	pthread_t equipo2;
 	pthread_t equipo3;
 	pthread_t equipo4;
-//faltan hilos
+
   
 	//inicializo los hilos de los equipos
     rc = pthread_create(&equipo1,                           //identificador unico
@@ -182,7 +277,7 @@ int main ()
 	rc = pthread_create(&equipo3,NULL,ejecutarReceta,equipoNombre3);
 	rc = pthread_create(&equipo4,NULL,ejecutarReceta,equipoNombre4);
 
-  //faltn inicializaciones
+  
 
 
    if (rc){
@@ -195,7 +290,7 @@ int main ()
 	pthread_join (equipo2,NULL);
 	pthread_join (equipo3,NULL);
 	pthread_join (equipo4,NULL);
-//.. faltan joins
+
 
 
     pthread_exit(NULL);
