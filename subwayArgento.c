@@ -8,6 +8,12 @@
 
 #define LIMITE 50
 
+
+int tiempoEquipo1;
+int tiempoEquipo2;
+int tiempoEquipo3;
+int tiempoEquipo4;
+
 //creo estructura de semaforos 
 struct semaforos {
     sem_t sem_mezclar;
@@ -21,7 +27,7 @@ struct semaforos {
 //creo los pasos con los ingredientes
 struct paso {
    char accion [LIMITE];
-   char ingredientes[4][LIMITE];
+   char ingredientes[11][LIMITE];
    
 };
 
@@ -118,6 +124,7 @@ void* ejecutarReceta(void *i) {
 	sem_t sem_mezclar;
 	
 	//crear variables semaforos aqui
+	sem_t sem_cortar;
 	sem_t sem_salar;
 	sem_t sem_agregar;
 	sem_t sem_empanar;
@@ -139,6 +146,7 @@ void* ejecutarReceta(void *i) {
 
 	//seteo los valores al struct
 	
+	
 	//seteo numero de grupo
 	pthread_data->equipo_param = p;
 
@@ -149,9 +157,10 @@ void* ejecutarReceta(void *i) {
 	pthread_data->semaforos_param.sem_agregar = sem_agregar;
 	pthread_data->semaforos_param.sem_mezclar = sem_mezclar;
 	pthread_data->semaforos_param.sem_empanar = sem_empanar;
+	pthread_data->semaforos_param.sem_cortar = sem_cortar;
 	
 
-	//seteo las acciones y los ingredientes (Faltan acciones e ingredientes) ¿Se ve hardcodeado no? ¿Les parece bien?
+	//seteo las acciones y los ingredientes 
      	strcpy(pthread_data->pasos_param[0].accion, "cortar");
 	    strcpy(pthread_data->pasos_param[0].ingredientes[0], "ajo");
         strcpy(pthread_data->pasos_param[0].ingredientes[1], "perejil");
@@ -164,16 +173,30 @@ void* ejecutarReceta(void *i) {
 	    strcpy(pthread_data->pasos_param[1].ingredientes[3], "carne");
 
 		strcpy(pthread_data->pasos_param[2].accion, "salar");
-		strcpy(pthread_data->pasos_param[2].ingredientes[0], "sal"); 
+		strcpy(pthread_data->pasos_param[2].ingredientes[10], "sal"); 
 
 		strcpy(pthread_data->pasos_param[3].accion, "agregar");
 		strcpy(pthread_data->pasos_param[3].ingredientes[3], "carne");
 
-		strcpy(pthread_data->pasos_param[4].accion, "hornear");
+		strcpy(pthread_data->pasos_param[4].accion, "cocinar");
 		strcpy(pthread_data->pasos_param[4].ingredientes[4], "pan");
 
 		strcpy(pthread_data->pasos_param[5].accion, "empanar");
-		strcpy(pthread_data->pasos_param[5].ingredientes[4], "pan");
+		strcpy(pthread_data->pasos_param[5].ingredientes[5], "milanesas");
+
+		strcpy(pthread_data->pasos_param[4].accion, "cocinar");
+		strcpy(pthread_data->pasos_param[4].ingredientes[5], "milanesas");
+
+		strcpy(pthread_data->pasos_param[0].accion, "cortar");
+		strcpy(pthread_data->pasos_param[0].ingredientes[6], "lechuga fresca");
+		strcpy(pthread_data->pasos_param[0].ingredientes[7], "tomate");
+		strcpy(pthread_data->pasos_param[0].ingredientes[8], "cebolla morada");
+		strcpy(pthread_data->pasos_param[0].ingredientes[9], "pepino");
+
+
+
+
+
 
 
 		
@@ -196,6 +219,7 @@ void* ejecutarReceta(void *i) {
 	sem_init(&(pthread_data->semaforos_param.sem_agregar),0,0);
 	sem_init(&(pthread_data->semaforos_param.sem_salar),0,0);
 	sem_init(&(pthread_data->semaforos_param.sem_empanar),0,0);
+	sem_init(&(pthread_data->semaforos_param.sem_cortar,0,0);
 
 
 	//creo los hilos a todos les paso el struct creado (el mismo a todos los hilos) ya que todos comparten los semaforos 
@@ -210,9 +234,11 @@ void* ejecutarReceta(void *i) {
 	int rc2;
 	int rc3;
 	int rc4;
+	int rc5;
 	rc2 = pthread_create(&p2,NULL,mezclar,pthread_data);
 	rc3 = pthread_create(&p3,NULL,agregar,pthread_data);
 	rc4 = pthread_create(&p4,NULL,empanar,pthread_data);
+	rc5 = pthread_create(&p5,NULL,salar,pthread_data);
 	
 	
 	//join de todos los hilos
@@ -229,13 +255,13 @@ void* ejecutarReceta(void *i) {
        exit(-1);
      }
 
-	 
 	//destruccion de los semaforos 
 	sem_destroy(&sem_mezclar);
 	//destruir demas semaforos 
 	sem_destroy(&sem_salar);
 	sem_destroy(&sem_agregar);
 	sem_destroy(&sem_empanar);
+	sem_destroy(&sem_cortar);
 	
 	//salida del hilo
 	 pthread_exit(NULL);
@@ -243,7 +269,10 @@ void* ejecutarReceta(void *i) {
 
 
 int main ()
-{
+{	
+
+	
+
 	//creo los nombres de los equipos 
 	int rc;
 	int *equipoNombre1 =malloc(sizeof(*equipoNombre1));
